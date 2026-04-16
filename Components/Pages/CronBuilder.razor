@@ -1,0 +1,509 @@
+@page "/cron-builder"
+@inject CronBuilderService CronService
+@inject IJSRuntime JS
+@using System.Collections.Generic
+
+<div class="cron-builder-container">
+    <div class="cron-header">
+        <h2>Cron Expression Builder</h2>
+        <p class="subtitle">Build custom cron schedules with an intuitive interface</p>
+    </div>
+
+    <div class="cron-content">
+        <!-- Presets Section -->
+        <div class="preset-section">
+            <h3>Quick Presets</h3>
+            <div class="preset-buttons">
+                @foreach (var preset in CronService.GetPresets())
+                {
+                    <button class="btn btn-preset" @onclick="() => ApplyPreset(preset.Value)">
+                        @preset.Key
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- Visual Builder Section -->
+        <div class="builder-section">
+            <h3>Custom Expression Builder</h3>
+            <div class="cron-fields">
+                <div class="field-group">
+                    <label>Minute (0-59)</label>
+                    <input type="text" class="field-input" @bind="Minute" @bind:event="oninput" />
+                    <span class="field-hint">e.g., 0, 15, */5, 0-30</span>
+                </div>
+
+                <div class="field-group">
+                    <label>Hour (0-23)</label>
+                    <input type="text" class="field-input" @bind="Hour" @bind:event="oninput" />
+                    <span class="field-hint">e.g., 0, 12, */2, 0-6</span>
+                </div>
+
+                <div class="field-group">
+                    <label>Day of Month (1-31)</label>
+                    <input type="text" class="field-input" @bind="Day" @bind:event="oninput" />
+                    <span class="field-hint">e.g., 1, 15, */5, 1-15</span>
+                </div>
+
+                <div class="field-group">
+                    <label>Month (1-12)</label>
+                    <input type="text" class="field-input" @bind="Month" @bind:event="oninput" />
+                    <span class="field-hint">e.g., 1, 6, */3, 1-6</span>
+                </div>
+
+                <div class="field-group">
+                    <label>Day of Week (0-6)</label>
+                    <input type="text" class="field-input" @bind="DayOfWeek" @bind:event="oninput" />
+                    <span class="field-hint">0=Sun, e.g., 1, 5, 1-5</span>
+                </div>
+
+                <div class="field-group">
+                    <label>Year (1970-2099)</label>
+                    <input type="text" class="field-input" @bind="Year" @bind:event="oninput" />
+                    <span class="field-hint">e.g., 2024, 2025, *</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expression Display Section -->
+        <div class="expression-section">
+            <h3>Generated Expression</h3>
+            <div class="expression-box @(IsValid ? "valid" : "invalid")">
+                <code>@CurrentExpression</code>
+                <button class="btn btn-copy" @onclick="CopyToClipboard">📋 Copy</button>
+            </div>
+            @if (!IsValid)
+            {
+                <div class="validation-error">
+                    ⚠️ Invalid cron expression
+                </div>
+            }
+            @if (CopySuccess)
+            {
+                <div class="validation-success">
+                    ✅ Copied to clipboard!
+                </div>
+            }
+        </div>
+
+        <!-- Description Section -->
+        <div class="description-section">
+            <h3>Description</h3>
+            <div class="description-box">
+                @CronService.GetCronDescription(CurrentExpression)
+            </div>
+        </div>
+
+        <!-- Manual Input Section -->
+        <div class="manual-section">
+            <h3>Manual Input</h3>
+            <div class="manual-input-group">
+                <input type="text" class="manual-input" placeholder="Enter cron expression..." @bind="ManualInput" @bind:event="oninput" />
+                <button class="btn btn-apply" @onclick="ApplyManualInput">Apply</button>
+                <button class="btn btn-reset" @onclick="ResetBuilder">Reset</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; }
+
+    private string Minute = "*";
+    private string Hour = "*";
+    private string Day = "*";
+    private string Month = "*";
+    private string DayOfWeek = "*";
+    private string Year = "*";
+    private string ManualInput = "";
+    private bool CopySuccess = false;
+
+    private string CurrentExpression => CronService.BuildCronExpression(Minute, Hour, Day, Month, DayOfWeek, Year);
+    private bool IsValid => CronService.ValidateCronExpression(CurrentExpression);
+
+    private void ApplyPreset(string expression)
+    {
+        var parts = expression.Split(' ');
+        if (parts.Length == 6)
+        {
+            Minute = parts[0];
+            Hour = parts[1];
+            Day = parts[2];
+            Month = parts[3];
+            DayOfWeek = parts[4];
+            Year = parts[5];
+            ManualInput = "";
+        }
+    }
+
+    private void ApplyManualInput()
+    {
+        if (!string.IsNullOrWhiteSpace(ManualInput) && CronService.ValidateCronExpression(ManualInput))
+        {
+            ApplyPreset(ManualInput);
+        }
+    }
+
+    private void ResetBuilder()
+    {
+        Minute = "*";
+        Hour = "*";
+        Day = "*";
+        Month = "*";
+        DayOfWeek = "*";
+        Year = "*";
+        ManualInput = "";
+        CopySuccess = false;
+    }
+
+    private async Task CopyToClipboard()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", CurrentExpression);
+            CopySuccess = true;
+            await Task.Delay(2000);
+            CopySuccess = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Copy to clipboard failed: {ex.Message}");
+        }
+    }
+}
+
+<style>
+    .cron-builder-container {
+        max-width: 1000px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .cron-header {
+        text-align: center;
+        margin-bottom: 30px;
+        border-bottom: 3px solid #0d6efd;
+        padding-bottom: 15px;
+    }
+
+    .cron-header h2 {
+        color: #0d6efd;
+        margin: 0 0 8px 0;
+    }
+
+    .subtitle {
+        color: #666;
+        font-size: 14px;
+        margin: 0;
+    }
+
+    .preset-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .preset-section h3 {
+        margin-top: 0;
+        color: #333;
+    }
+
+    .preset-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .btn-preset {
+        padding: 8px 15px;
+        background: white;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-preset:hover {
+        border-color: #0d6efd;
+        color: #0d6efd;
+        background: #f0f7ff;
+    }
+
+    .builder-section {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .builder-section h3 {
+        margin-top: 0;
+        color: #333;
+    }
+
+    .cron-fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+    }
+
+    .field-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .field-group label {
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    .field-input {
+        padding: 10px;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+    .field-input:focus {
+        outline: none;
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    }
+
+    .field-hint {
+        font-size: 11px;
+        color: #999;
+        margin-top: 3px;
+    }
+
+    .expression-section {
+        background: #f0f7ff;
+        border: 1px solid #0d6efd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .expression-section h3 {
+        margin-top: 0;
+        color: #0d6efd;
+    }
+
+    .expression-box {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .expression-box.valid {
+        border-color: #28a745;
+        background: #f0fff4;
+    }
+
+    .expression-box.invalid {
+        border-color: #dc3545;
+        background: #fff5f5;
+    }
+
+    .expression-box code {
+        font-size: 16px;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        color: #333;
+        flex: 1;
+    }
+
+    .btn-copy {
+        padding: 8px 15px;
+        background: #0d6efd;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 13px;
+        white-space: nowrap;
+        transition: background 0.3s ease;
+    }
+
+    .btn-copy:hover {
+        background: #0b5ed7;
+    }
+
+    .validation-error {
+        color: #dc3545;
+        font-size: 13px;
+        padding: 10px;
+        background: #fff5f5;
+        border-radius: 5px;
+        border: 1px solid #f5c6cb;
+    }
+
+    .validation-success {
+        color: #28a745;
+        font-size: 13px;
+        padding: 10px;
+        background: #f0fff4;
+        border-radius: 5px;
+        border: 1px solid #c3e6cb;
+    }
+
+    .description-section {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .description-section h3 {
+        margin-top: 0;
+        color: #856404;
+    }
+
+    .description-box {
+        background: white;
+        padding: 15px;
+        border-radius: 5px;
+        font-size: 14px;
+        color: #333;
+        line-height: 1.6;
+    }
+
+    .manual-section {
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .manual-section h3 {
+        margin-top: 0;
+        color: #333;
+    }
+
+    .manual-input-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .manual-input {
+        flex: 1;
+        min-width: 250px;
+        padding: 10px;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+    .manual-input:focus {
+        outline: none;
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    }
+
+    .btn-apply {
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.3s ease;
+    }
+
+    .btn-apply:hover {
+        background: #218838;
+    }
+
+    .btn-reset {
+        background: #6c757d;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.3s ease;
+    }
+
+    .btn-reset:hover {
+        background: #5a6268;
+    }
+
+    /* Mobile Responsive */
+    @@media (max-width: 768px) {
+        .cron-builder-container {
+            padding: 10px;
+        }
+
+        .cron-fields {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .expression-box {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .btn-copy {
+            width: 100%;
+        }
+
+        .manual-input-group {
+            flex-direction: column;
+        }
+
+        .manual-input {
+            width: 100%;
+        }
+
+        .btn-apply, .btn-reset {
+            width: 100%;
+        }
+
+        .preset-buttons {
+            flex-direction: column;
+        }
+
+        .btn-preset {
+            width: 100%;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .cron-fields {
+            grid-template-columns: 1fr;
+        }
+
+        .cron-header h2 {
+            font-size: 20px;
+        }
+
+        .preset-section h3,
+        .builder-section h3,
+        .expression-section h3,
+        .description-section h3,
+        .manual-section h3 {
+            font-size: 16px;
+        }
+    }
+</style>

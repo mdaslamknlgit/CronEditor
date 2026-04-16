@@ -1,0 +1,153 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\MdAslam\\Blazor\\Code\\CronEditor\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{4E6989FB-D517-4E57-8220-718C68AC4D94}|CronEditor.csproj|c:\\mdaslam\\blazor\\code\\croneditor\\components\\pages\\cronschedule.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{4E6989FB-D517-4E57-8220-718C68AC4D94}|CronEditor.csproj|solutionrelative:components\\pages\\cronschedule.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4E6989FB-D517-4E57-8220-718C68AC4D94}|CronEditor.csproj|c:\\mdaslam\\blazor\\code\\croneditor\\components\\pages\\cronbuilder.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{4E6989FB-D517-4E57-8220-718C68AC4D94}|CronEditor.csproj|solutionrelative:components\\pages\\cronbuilder.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4E6989FB-D517-4E57-8220-718C68AC4D94}|CronEditor.csproj|c:\\mdaslam\\blazor\\code\\croneditor\\components\\layout\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{4E6989FB-D517-4E57-8220-718C68AC4D94}|CronEditor.csproj|solutionrelative:components\\layout\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4E6989FB-D517-4E57-8220-718C68AC4D94}|CronEditor.csproj|c:\\mdaslam\\blazor\\code\\croneditor\\cronbuilderservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{4E6989FB-D517-4E57-8220-718C68AC4D94}|CronEditor.csproj|solutionrelative:cronbuilderservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4E6989FB-D517-4E57-8220-718C68AC4D94}|CronEditor.csproj|c:\\mdaslam\\blazor\\code\\croneditor\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{4E6989FB-D517-4E57-8220-718C68AC4D94}|CronEditor.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 7,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:131:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:133:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:132:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "CronSchedule.razor",
+              "DocumentMoniker": "C:\\MdAslam\\Blazor\\Code\\CronEditor\\Components\\Pages\\CronSchedule.razor",
+              "RelativeDocumentMoniker": "Components\\Pages\\CronSchedule.razor",
+              "ToolTip": "C:\\MdAslam\\Blazor\\Code\\CronEditor\\Components\\Pages\\CronSchedule.razor",
+              "RelativeToolTip": "Components\\Pages\\CronSchedule.razor",
+              "ViewState": "AgIAAE0AAAAAAAAAAAAYwFIAAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-04-16T20:16:19.84Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "NavMenu.razor",
+              "DocumentMoniker": "C:\\MdAslam\\Blazor\\Code\\CronEditor\\Components\\Layout\\NavMenu.razor",
+              "RelativeDocumentMoniker": "Components\\Layout\\NavMenu.razor",
+              "ToolTip": "C:\\MdAslam\\Blazor\\Code\\CronEditor\\Components\\Layout\\NavMenu.razor",
+              "RelativeToolTip": "Components\\Layout\\NavMenu.razor",
+              "ViewState": "AgIAABAAAAAAAAAAAAAkwCQAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-04-16T20:02:17.541Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "CronBuilder.razor",
+              "DocumentMoniker": "C:\\MdAslam\\Blazor\\Code\\CronEditor\\Components\\Pages\\CronBuilder.razor",
+              "RelativeDocumentMoniker": "Components\\Pages\\CronBuilder.razor",
+              "ToolTip": "C:\\MdAslam\\Blazor\\Code\\CronEditor\\Components\\Pages\\CronBuilder.razor",
+              "RelativeToolTip": "Components\\Pages\\CronBuilder.razor",
+              "ViewState": "AgIAAOABAAAAAAAAAAAYwOsBAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-04-16T20:02:07.811Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "CronBuilderService.cs",
+              "DocumentMoniker": "C:\\MdAslam\\Blazor\\Code\\CronEditor\\CronBuilderService.cs",
+              "RelativeDocumentMoniker": "CronBuilderService.cs",
+              "ToolTip": "C:\\MdAslam\\Blazor\\Code\\CronEditor\\CronBuilderService.cs",
+              "RelativeToolTip": "CronBuilderService.cs",
+              "ViewState": "AgIAAH4AAAAAAAAAAADwv8YAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-16T20:01:27.914Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\MdAslam\\Blazor\\Code\\CronEditor\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "C:\\MdAslam\\Blazor\\Code\\CronEditor\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-16T20:00:34.598Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 1354,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            }
+          ]
+        },
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

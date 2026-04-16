@@ -1,0 +1,337 @@
+@page "/cron-schedule"
+@inject CronBuilderService CronService
+
+<div class="schedule-container">
+    <h2>Saved Schedules</h2>
+
+    <!-- Use the new Cron Expression Editor -->
+    <div class="editor-wrapper">
+        <h3>Build Your Cron Expression</h3>
+        <CronExpressionEditor InitialExpression="@SelectedExpression" OnExpressionChanged="@OnExpressionSelected" />
+    </div>
+
+    <!-- Add to Schedules Section -->
+    <div class="add-schedule-section">
+        <h3>Add to Schedule</h3>
+        <div class="form-group">
+            <label>Schedule Name:</label>
+            <input type="text" class="form-control" @bind="ScheduleName" placeholder="e.g., Daily Backup" />
+        </div>
+        @if (!string.IsNullOrEmpty(AddError))
+        {
+            <div class="alert alert-danger">@AddError</div>
+        }
+        <button class="btn btn-primary" @onclick="AddSchedule">Add Schedule</button>
+    </div>
+
+    <!-- Rest of the component remains the same -->
+    @if (Schedules.Count > 0)
+    {
+        <div class="schedules-list">
+            <h3>Your Schedules (@Schedules.Count)</h3>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Expression</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var schedule in Schedules)
+                        {
+                            <tr>
+                                <td>@schedule.Name</td>
+                                <td><code>@schedule.Expression</code></td>
+                                <td>@CronService.GetCronDescription(schedule.Expression)</td>
+                                <td>
+                                    @if (CronService.ValidateCronExpression(schedule.Expression))
+                                    {
+                                        <span class="badge bg-success">Valid</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Invalid</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning" @onclick="() => EditSchedule(schedule)">Edit</button>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteSchedule(schedule.Id)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            No schedules saved yet. Create one to get started!
+        </div>
+    }
+</div>
+
+@code {
+    private string ScheduleName = "";
+    private string SelectedExpression = "* * * * * *";
+    private string AddError = "";
+    private List<CronSchedules> Schedules = new();
+
+    protected override void OnInitialized()
+    {
+        Schedules = new List<CronSchedules>
+        {
+            new CronSchedules { Id = 1, Name = "Daily Backup", Expression = "0 0 * * * *" },
+            new CronSchedules { Id = 2, Name = "Every Hour", Expression = "0 * * * * *" },
+            new CronSchedules { Id = 3, Name = "Weekly Report", Expression = "0 9 * * 1 *" }
+        };
+    }
+
+    private void OnExpressionSelected(string expression)
+    {
+        SelectedExpression = expression;
+    }
+
+    private void AddSchedule()
+    {
+        AddError = "";
+
+        if (string.IsNullOrWhiteSpace(ScheduleName))
+        {
+            AddError = "Schedule name is required.";
+            return;
+        }
+
+        if (!CronService.ValidateCronExpression(SelectedExpression))
+        {
+            AddError = "Invalid cron expression.";
+            return;
+        }
+
+        var newSchedule = new CronSchedules
+        {
+            Id = Schedules.Count > 0 ? Schedules.Max(s => s.Id) + 1 : 1,
+            Name = ScheduleName,
+            Expression = SelectedExpression
+        };
+
+        Schedules.Add(newSchedule);
+        ScheduleName = "";
+    }
+
+    private void EditSchedule(CronSchedules schedule)
+    {
+        ScheduleName = schedule.Name;
+        SelectedExpression = schedule.Expression;
+        DeleteSchedule(schedule.Id);
+    }
+
+    private void DeleteSchedule(int id)
+    {
+        Schedules = Schedules.Where(s => s.Id != id).ToList();
+    }
+
+    public class CronSchedules
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Expression { get; set; }
+    }
+}
+
+<style>
+    .schedule-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .editor-wrapper {
+        margin-bottom: 40px;
+    }
+
+    .editor-wrapper h3 {
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .add-schedule-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        border: 1px solid #dee2e6;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        margin-bottom: 5px;
+        display: block;
+        color: #333;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    }
+
+    .btn-primary {
+        background: #0d6efd;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .btn-primary:hover {
+        background: #0b5ed7;
+    }
+
+    .schedules-list {
+        margin-top: 30px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .table thead {
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .table th {
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .table td {
+        padding: 12px;
+        border-bottom: 1px solid #dee2e6;
+        vertical-align: middle;
+    }
+
+    .table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .table code {
+        background: #f0f0f0;
+        padding: 3px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+        color: #d63384;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .bg-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .bg-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-sm {
+        padding: 5px 10px;
+        font-size: 12px;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        margin-right: 5px;
+    }
+
+    .btn-warning {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .btn-warning:hover {
+        background: #e0a800;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #c82333;
+    }
+
+    .alert {
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 20px;
+        border: 1px solid;
+    }
+
+    .alert-info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border-color: #bee5eb;
+    }
+
+    .alert-danger {
+        background: #f8d7da;
+        color: #721c24;
+        border-color: #f5c6cb;
+    }
+
+    @@media (max-width: 768px) {
+        .table {
+            font-size: 13px;
+        }
+
+        .table th,
+        .table td {
+            padding: 8px;
+        }
+
+        .btn-sm {
+            margin-bottom: 5px;
+        }
+    }
+</style>
