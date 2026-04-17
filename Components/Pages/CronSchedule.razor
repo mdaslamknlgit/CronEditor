@@ -1,30 +1,47 @@
 @page "/cron-schedule"
+@rendermode InteractiveServer
 @inject CronBuilderService CronService
+@using System.Collections.Generic
 
 <div class="schedule-container">
     <h2>Saved Schedules</h2>
 
-    <!-- Use the new Cron Expression Editor -->
-    <div class="editor-wrapper">
-        <h3>Build Your Cron Expression</h3>
-        <CronExpressionEditor InitialExpression="@SelectedExpression" OnExpressionChanged="@OnExpressionSelected" />
-    </div>
+    <!-- Cron Builder Modal -->
+    <CronBuilderModal IsOpen="@ShowCronBuilder"
+                      InitialExpression="@SelectedExpression"
+                      OnConfirm="@OnExpressionSelected"
+                      OnCancel="@CloseCronBuilder" />
 
     <!-- Add to Schedules Section -->
     <div class="add-schedule-section">
-        <h3>Add to Schedule</h3>
+        <h3>@(EditingScheduleId.HasValue ? "Edit Schedule" : "Add New Schedule")</h3>
         <div class="form-group">
             <label>Schedule Name:</label>
             <input type="text" class="form-control" @bind="ScheduleName" placeholder="e.g., Daily Backup" />
+        </div>
+        <div class="form-group">
+            <label>Cron Expression:</label>
+            <div class="expression-input-group">
+                <input type="text" class="form-control" @bind="SelectedExpression" placeholder="Click button to select..." readonly />
+                <button class="btn btn-select-cron" @onclick="OpenCronBuilder">Select Cron</button>
+            </div>
         </div>
         @if (!string.IsNullOrEmpty(AddError))
         {
             <div class="alert alert-danger">@AddError</div>
         }
-        <button class="btn btn-primary" @onclick="AddSchedule">Add Schedule</button>
+        <div class="button-group">
+            <button class="btn btn-primary" @onclick="AddSchedule">
+                @(EditingScheduleId.HasValue ? "Update Schedule" : "Add Schedule")
+            </button>
+            @if (EditingScheduleId.HasValue)
+            {
+                <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+            }
+        </div>
     </div>
 
-    <!-- Rest of the component remains the same -->
+    <!-- Schedules List -->
     @if (Schedules.Count > 0)
     {
         <div class="schedules-list">
@@ -43,7 +60,7 @@
                     <tbody>
                         @foreach (var schedule in Schedules)
                         {
-                            <tr>
+                            <tr class="@(EditingScheduleId == schedule.Id ? "editing" : "")">
                                 <td>@schedule.Name</td>
                                 <td><code>@schedule.Expression</code></td>
                                 <td>@CronService.GetCronDescription(schedule.Expression)</td>
@@ -77,26 +94,59 @@
 </div>
 
 @code {
+
+    private bool ShowCronBuilder = false;
     private string ScheduleName = "";
     private string SelectedExpression = "* * * * * *";
     private string AddError = "";
-    private List<CronSchedules> Schedules = new();
+    private int? EditingScheduleId = null;
+    private List<ScheduleItem> Schedules = new();
 
     protected override void OnInitialized()
     {
-        Schedules = new List<CronSchedules>
+        Schedules = new List<ScheduleItem>
         {
-            new CronSchedules { Id = 1, Name = "Daily Backup", Expression = "0 0 * * * *" },
-            new CronSchedules { Id = 2, Name = "Every Hour", Expression = "0 * * * * *" },
-            new CronSchedules { Id = 3, Name = "Weekly Report", Expression = "0 9 * * 1 *" }
+            new ScheduleItem { Id = 1, Name = "Daily Backup", Expression = "0 0 * * * *" },
+            new ScheduleItem { Id = 2, Name = "Every Hour", Expression = "0 * * * * *" },
+            new ScheduleItem { Id = 3, Name = "Weekly Report", Expression = "0 9 * * 1 *" }
         };
     }
 
-    private void OnExpressionSelected(string expression)
+    private void OpenCronBuilder()
     {
-        SelectedExpression = expression;
+        ShowCronBuilder = true;
     }
 
+    private async Task CloseCronBuilder()
+    {
+        ShowCronBuilder = false;
+        await Task.CompletedTask;
+    }
+
+    // private async Task OnExpressionSelected(string expression)
+    // {
+    //     SelectedExpression = expression;
+    //     ShowCronBuilder = false;
+    //     await Task.CompletedTask;
+    // }
+    private async Task OnExpressionSelected(string expression)
+    {
+        SelectedExpression = expression;
+        ShowCronBuilder = false;
+
+        // Update the schedule in real-time if editing
+        if (EditingScheduleId.HasValue)
+        {
+            var existing = Schedules.FirstOrDefault(s => s.Id == EditingScheduleId.Value);
+            if (existing != null)
+            {
+                existing.Expression = expression;
+            }
+        }
+
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
     private void AddSchedule()
     {
         AddError = "";
@@ -113,30 +163,60 @@
             return;
         }
 
-        var newSchedule = new CronSchedules
+        if (EditingScheduleId.HasValue)
         {
-            Id = Schedules.Count > 0 ? Schedules.Max(s => s.Id) + 1 : 1,
-            Name = ScheduleName,
-            Expression = SelectedExpression
-        };
+            // Update existing schedule
+            var existing = Schedules.FirstOrDefault(s => s.Id == EditingScheduleId.Value);
+            if (existing != null)
+            {
+                existing.Name = ScheduleName;
+                existing.Expression = SelectedExpression;
+            }
+            EditingScheduleId = null;
+        }
+        else
+        {
+            // Create new schedule
+            var newSchedule = new ScheduleItem
+            {
+                Id = Schedules.Count > 0 ? Schedules.Max(s => s.Id) + 1 : 1,
+                Name = ScheduleName,
+                Expression = SelectedExpression
+            };
+            Schedules.Add(newSchedule);
+        }
 
-        Schedules.Add(newSchedule);
         ScheduleName = "";
+        SelectedExpression = "* * * * * *";
     }
 
-    private void EditSchedule(CronSchedules schedule)
+    private void EditSchedule(ScheduleItem schedule)
     {
         ScheduleName = schedule.Name;
         SelectedExpression = schedule.Expression;
-        DeleteSchedule(schedule.Id);
+        EditingScheduleId = schedule.Id;
+        OpenCronBuilder();
+
+        schedule.Expression = SelectedExpression;
+    }
+
+    private void CancelEdit()
+    {
+        ScheduleName = "";
+        SelectedExpression = "* * * * * *";
+        EditingScheduleId = null;
     }
 
     private void DeleteSchedule(int id)
     {
         Schedules = Schedules.Where(s => s.Id != id).ToList();
+        if (EditingScheduleId == id)
+        {
+            CancelEdit();
+        }
     }
 
-    public class CronSchedules
+    public class ScheduleItem
     {
         public int Id { get; set; }
         public string Name { get; set; }
@@ -151,15 +231,6 @@
         padding: 20px;
     }
 
-    .editor-wrapper {
-        margin-bottom: 40px;
-    }
-
-    .editor-wrapper h3 {
-        color: #333;
-        margin-bottom: 15px;
-    }
-
     .add-schedule-section {
         background: #f8f9fa;
         padding: 20px;
@@ -172,15 +243,20 @@
         margin-bottom: 15px;
     }
 
-    .form-group label {
-        font-weight: 600;
-        margin-bottom: 5px;
-        display: block;
-        color: #333;
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: block;
+            color: #333;
+        }
+
+    .expression-input-group {
+        display: flex;
+        gap: 10px;
     }
 
     .form-control {
-        width: 100%;
+        flex: 1;
         padding: 10px;
         border: 2px solid #e0e0e0;
         border-radius: 5px;
@@ -188,10 +264,30 @@
         box-sizing: border-box;
     }
 
-    .form-control:focus {
-        outline: none;
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        .form-control:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        }
+
+    .btn-select-cron {
+        background: #0d6efd;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+        .btn-select-cron:hover {
+            background: #0b5ed7;
+        }
+
+    .button-group {
+        display: flex;
+        gap: 10px;
     }
 
     .btn-primary {
@@ -204,9 +300,23 @@
         font-weight: 600;
     }
 
-    .btn-primary:hover {
-        background: #0b5ed7;
+        .btn-primary:hover {
+            background: #0b5ed7;
+        }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
     }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
 
     .schedules-list {
         margin-top: 30px;
@@ -225,35 +335,40 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .table thead {
-        background: #f8f9fa;
-        border-bottom: 2px solid #dee2e6;
-    }
+        .table thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
 
-    .table th {
-        padding: 12px;
-        text-align: left;
-        font-weight: 600;
-        color: #333;
-    }
+        .table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+        }
 
-    .table td {
-        padding: 12px;
-        border-bottom: 1px solid #dee2e6;
-        vertical-align: middle;
-    }
+        .table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: middle;
+        }
 
-    .table tbody tr:hover {
-        background: #f8f9fa;
-    }
+        .table tbody tr:hover {
+            background: #f8f9fa;
+        }
 
-    .table code {
-        background: #f0f0f0;
-        padding: 3px 6px;
-        border-radius: 3px;
-        font-size: 12px;
-        color: #d63384;
-    }
+        .table tbody tr.editing {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        .table code {
+            background: #f0f0f0;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #d63384;
+        }
 
     .badge {
         display: inline-block;
@@ -288,18 +403,18 @@
         color: #333;
     }
 
-    .btn-warning:hover {
-        background: #e0a800;
-    }
+        .btn-warning:hover {
+            background: #e0a800;
+        }
 
     .btn-danger {
         background: #dc3545;
         color: white;
     }
 
-    .btn-danger:hover {
-        background: #c82333;
-    }
+        .btn-danger:hover {
+            background: #c82333;
+        }
 
     .alert {
         padding: 15px;
@@ -325,13 +440,49 @@
             font-size: 13px;
         }
 
-        .table th,
-        .table td {
-            padding: 8px;
-        }
+            .table th,
+            .table td {
+                padding: 8px;
+            }
 
         .btn-sm {
             margin-bottom: 5px;
+        }
+
+        .expression-input-group {
+            flex-direction: column;
+        }
+
+        .btn-select-cron {
+            width: 100%;
+        }
+
+        .button-group {
+            flex-direction: column;
+        }
+
+        .btn-primary, .btn-secondary {
+            width: 100%;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .schedule-container {
+            padding: 10px;
+        }
+
+        .table {
+            font-size: 11px;
+        }
+
+            .table th,
+            .table td {
+                padding: 5px;
+            }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 11px;
         }
     }
 </style>

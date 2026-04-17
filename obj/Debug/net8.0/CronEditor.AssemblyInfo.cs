@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CronEditor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b85330043993f73416fda0b45554f5fdb3c09e43")]
 [assembly: System.Reflection.AssemblyProductAttribute("CronEditor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CronEditor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

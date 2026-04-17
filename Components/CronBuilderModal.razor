@@ -1,0 +1,612 @@
+@rendermode InteractiveServer
+@inject CronBuilderService CronService
+@inject IJSRuntime JS
+@using System.Collections.Generic
+
+<div class="modal-overlay @(IsOpen ? "show" : "")" @onclick="OnBackdropClick">
+    <div class="modal-dialog" @onclick:stopPropagation="true">
+        <div class="modal-header">
+            <h2>Cron Expression Builder</h2>
+            <button type="button" class="btn-close" @onclick="Cancel">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Presets Section -->
+            <div class="preset-section">
+                <h3>Quick Presets</h3>
+                <div class="preset-buttons">
+                    @foreach (var preset in CronService.GetPresets())
+                    {
+                        <button class="btn btn-preset" @onclick:stopPropagation="true" @onclick="@(async () => await ApplyPreset(preset.Value))">
+                            @preset.Key
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Visual Builder Section -->
+            <div class="builder-section">
+                <h3>Custom Expression Builder</h3>
+                <div class="cron-fields">
+                    <div class="field-group">
+                        <label>Minute (0-59)</label>
+                        <input type="text" class="field-input" @bind="Minute" @bind:event="oninput" @onchange="@(async () => await OnValueChanged())" @onclick:stopPropagation="true" />
+                        <span class="field-hint">e.g., 0, 15, */5, 0-30, 6</span>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Hour (0-23)</label>
+                        <input type="text" class="field-input" @bind="Hour" @bind:event="oninput" @onchange="@(async () => await OnValueChanged())" @onclick:stopPropagation="true" />
+                        <span class="field-hint">e.g., 0, 12, */2, 0-6</span>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Day of Month (1-31)</label>
+                        <input type="text" class="field-input" @bind="Day" @bind:event="oninput" @onchange="@(async () => await OnValueChanged())" @onclick:stopPropagation="true" />
+                        <span class="field-hint">e.g., 1, 15, */5, 1-15</span>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Month (1-12)</label>
+                        <input type="text" class="field-input" @bind="Month" @bind:event="oninput" @onchange="@(async () => await OnValueChanged())" @onclick:stopPropagation="true" />
+                        <span class="field-hint">e.g., 1, 6, */3, 1-6</span>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Day of Week (0-6)</label>
+                        <input type="text" class="field-input" @bind="DayOfWeek" @bind:event="oninput" @onchange="@(async () => await OnValueChanged())" @onclick:stopPropagation="true" />
+                        <span class="field-hint">0=Sun, e.g., 1, 5, 1-5</span>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Year (1970-2099)</label>
+                        <input type="text" class="field-input" @bind="Year" @bind:event="oninput" @onchange="@(async () => await OnValueChanged())" @onclick:stopPropagation="true" />
+                        <span class="field-hint">e.g., 2024, 2025, *</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expression Display Section -->
+            <div class="expression-section">
+                <h3>Generated Expression</h3>
+                <div class="expression-box @(IsValid ? "valid" : "invalid")" @onclick:stopPropagation="true">
+                    <code>@CurrentExpression</code>
+                </div>
+                @if (!IsValid)
+                {
+                    <div class="validation-error">
+                        ⚠️ Invalid cron expression
+                    </div>
+                }
+            </div>
+
+            <!-- Description Section -->
+            <div class="description-section">
+                <h3>Description</h3>
+                <div class="description-box">
+                    @CronService.GetCronDescription(CurrentExpression)
+                </div>
+            </div>
+
+            <!-- Manual Input Section -->
+            <div class="manual-section">
+                <h3>Manual Input</h3>
+                <div class="manual-input-group">
+                    <input type="text" class="manual-input" placeholder="Enter cron expression..." @bind="ManualInput" @bind:event="oninput" @onclick:stopPropagation="true" />
+                    <button class="btn btn-apply" @onclick:stopPropagation="true" @onclick="@(async () => await ApplyManualInput())">Apply</button>
+                    <button class="btn btn-reset" @onclick:stopPropagation="true" @onclick="@(async () => await ResetBuilder())">Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-cancel" @onclick:stopPropagation="true" @onclick="Cancel">Cancel</button>
+            <button type="button" class="btn btn-ok" disabled="@(!IsValid)" @onclick:stopPropagation="true" @onclick="OK">OK</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; }
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public string InitialExpression { get; set; } = "* * * * * *";
+
+    [Parameter]
+    public EventCallback<string> OnConfirm { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private string Minute = "*";
+    private string Hour = "*";
+    private string Day = "*";
+    private string Month = "*";
+    private string DayOfWeek = "*";
+    private string Year = "*";
+    private string ManualInput = "";
+
+    private string CurrentExpression => CronService.BuildCronExpression(Minute, Hour, Day, Month, DayOfWeek, Year);
+    private bool IsValid => CronService.ValidateCronExpression(CurrentExpression);
+
+    protected override void OnParametersSet()
+    {
+        if (IsOpen)
+        {
+            ParseInitialExpression();
+        }
+    }
+
+    private void ParseInitialExpression()
+    {
+        var parts = InitialExpression.Split(' ');
+        if (parts.Length >= 6)
+        {
+            Minute = parts[0];
+            Hour = parts[1];
+            Day = parts[2];
+            Month = parts[3];
+            DayOfWeek = parts[4];
+            Year = parts[5];
+            ManualInput = "";
+        }
+    }
+
+    private async Task OnValueChanged()
+    {
+        await Task.Delay(0);
+        StateHasChanged();
+    }
+
+    private async Task ApplyPreset(string expression)
+    {
+        var parts = expression.Split(' ');
+        if (parts.Length == 6)
+        {
+            Minute = parts[0];
+            Hour = parts[1];
+            Day = parts[2];
+            Month = parts[3];
+            DayOfWeek = parts[4];
+            Year = parts[5];
+            ManualInput = "";
+            StateHasChanged();
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task ApplyManualInput()
+    {
+        if (!string.IsNullOrWhiteSpace(ManualInput) && CronService.ValidateCronExpression(ManualInput))
+        {
+            await ApplyPreset(ManualInput);
+        }
+    }
+
+    private async Task ResetBuilder()
+    {
+        Minute = "*";
+        Hour = "*";
+        Day = "*";
+        Month = "*";
+        DayOfWeek = "*";
+        Year = "*";
+        ManualInput = "";
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task OK()
+    {
+        if (IsValid)
+        {
+            await OnConfirm.InvokeAsync(CurrentExpression);
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+    private async Task OnBackdropClick()
+    {
+        // Only close if clicking directly on the overlay, not the dialog
+        await Cancel();
+    }
+}
+
+<style>
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+    .modal-dialog {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        width: 90%;
+        max-width: 900px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        animation: slideIn 0.3s ease;
+        pointer-events: auto;
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-header {
+        padding: 20px;
+        border-bottom: 2px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #0d6efd;
+            font-size: 24px;
+        }
+
+    .btn-close {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #666;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .btn-close:hover {
+            color: #000;
+        }
+
+    .modal-body {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .modal-footer {
+        padding: 15px 20px;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .btn-ok {
+        background: #28a745;
+        color: white;
+        padding: 10px 30px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: background 0.3s ease;
+    }
+
+        .btn-ok:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .btn-ok:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+    .btn-cancel {
+        background: #6c757d;
+        color: white;
+        padding: 10px 30px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: background 0.3s ease;
+    }
+
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+
+    .preset-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+        .preset-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+    .preset-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .btn-preset {
+        padding: 8px 15px;
+        background: white;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.3s ease;
+    }
+
+        .btn-preset:hover {
+            border-color: #0d6efd;
+            color: #0d6efd;
+            background: #f0f7ff;
+        }
+
+    .builder-section {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+        .builder-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+    .cron-fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+    }
+
+    .field-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+        .field-group label {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+    .field-input {
+        padding: 10px;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+        .field-input:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        }
+
+    .field-hint {
+        font-size: 11px;
+        color: #999;
+        margin-top: 3px;
+    }
+
+    .expression-section {
+        background: #f0f7ff;
+        border: 1px solid #0d6efd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+        .expression-section h3 {
+            margin-top: 0;
+            color: #0d6efd;
+        }
+
+    .expression-box {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+    }
+
+        .expression-box.valid {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .expression-box.invalid {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .expression-box code {
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #333;
+            flex: 1;
+        }
+
+    .validation-error {
+        color: #dc3545;
+        font-size: 13px;
+        padding: 10px;
+        background: #fff5f5;
+        border-radius: 5px;
+        border: 1px solid #f5c6cb;
+    }
+
+    .description-section {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+        .description-section h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+
+    .description-box {
+        background: white;
+        padding: 15px;
+        border-radius: 5px;
+        font-size: 14px;
+        color: #333;
+        line-height: 1.6;
+    }
+
+    .manual-section {
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+        .manual-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+    .manual-input-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .manual-input {
+        flex: 1;
+        min-width: 250px;
+        padding: 10px;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+        .manual-input:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        }
+
+    .btn-apply {
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.3s ease;
+    }
+
+        .btn-apply:hover {
+            background: #218838;
+        }
+
+    .btn-reset {
+        background: #6c757d;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.3s ease;
+    }
+
+        .btn-reset:hover {
+            background: #5a6268;
+        }
+
+    @@media (max-width: 768px) {
+        .modal-dialog {
+            width: 95%;
+            max-height: 95vh;
+        }
+
+        .cron-fields {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .modal-footer {
+            flex-direction: column;
+        }
+
+        .btn-ok, .btn-cancel {
+            width: 100%;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .modal-header h2 {
+            font-size: 18px;
+        }
+
+        .modal-body {
+            padding: 15px;
+        }
+
+        .modal-footer {
+            padding: 10px 15px;
+        }
+
+        .cron-fields {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

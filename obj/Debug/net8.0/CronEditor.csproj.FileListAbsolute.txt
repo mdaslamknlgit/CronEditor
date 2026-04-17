@@ -31,3 +31,4 @@ C:\MdAslam\Blazor\Code\CronEditor\obj\Debug\net8.0\refint\CronEditor.dll
 C:\MdAslam\Blazor\Code\CronEditor\obj\Debug\net8.0\CronEditor.pdb
 C:\MdAslam\Blazor\Code\CronEditor\obj\Debug\net8.0\CronEditor.genruntimeconfig.cache
 C:\MdAslam\Blazor\Code\CronEditor\obj\Debug\net8.0\ref\CronEditor.dll
+C:\MdAslam\Blazor\Code\CronEditor\obj\Debug\net8.0\CronEditor.sourcelink.json

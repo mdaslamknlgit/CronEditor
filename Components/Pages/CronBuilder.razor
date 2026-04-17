@@ -29,37 +29,37 @@
             <div class="cron-fields">
                 <div class="field-group">
                     <label>Minute (0-59)</label>
-                    <input type="text" class="field-input" @bind="Minute" @bind:event="oninput" />
-                    <span class="field-hint">e.g., 0, 15, */5, 0-30</span>
+                    <input type="text" class="field-input" @bind="Minute" @bind:event="oninput" @onchange="OnValueChanged" />
+                    <span class="field-hint">e.g., 0, 15, */5, 0-30, 6</span>
                 </div>
 
                 <div class="field-group">
                     <label>Hour (0-23)</label>
-                    <input type="text" class="field-input" @bind="Hour" @bind:event="oninput" />
+                    <input type="text" class="field-input" @bind="Hour" @bind:event="oninput" @onchange="OnValueChanged" />
                     <span class="field-hint">e.g., 0, 12, */2, 0-6</span>
                 </div>
 
                 <div class="field-group">
                     <label>Day of Month (1-31)</label>
-                    <input type="text" class="field-input" @bind="Day" @bind:event="oninput" />
+                    <input type="text" class="field-input" @bind="Day" @bind:event="oninput" @onchange="OnValueChanged" />
                     <span class="field-hint">e.g., 1, 15, */5, 1-15</span>
                 </div>
 
                 <div class="field-group">
                     <label>Month (1-12)</label>
-                    <input type="text" class="field-input" @bind="Month" @bind:event="oninput" />
+                    <input type="text" class="field-input" @bind="Month" @bind:event="oninput" @onchange="OnValueChanged" />
                     <span class="field-hint">e.g., 1, 6, */3, 1-6</span>
                 </div>
 
                 <div class="field-group">
                     <label>Day of Week (0-6)</label>
-                    <input type="text" class="field-input" @bind="DayOfWeek" @bind:event="oninput" />
+                    <input type="text" class="field-input" @bind="DayOfWeek" @bind:event="oninput" @onchange="OnValueChanged" />
                     <span class="field-hint">0=Sun, e.g., 1, 5, 1-5</span>
                 </div>
 
                 <div class="field-group">
                     <label>Year (1970-2099)</label>
-                    <input type="text" class="field-input" @bind="Year" @bind:event="oninput" />
+                    <input type="text" class="field-input" @bind="Year" @bind:event="oninput" @onchange="OnValueChanged" />
                     <span class="field-hint">e.g., 2024, 2025, *</span>
                 </div>
             </div>
@@ -122,6 +122,11 @@
     private string CurrentExpression => CronService.BuildCronExpression(Minute, Hour, Day, Month, DayOfWeek, Year);
     private bool IsValid => CronService.ValidateCronExpression(CurrentExpression);
 
+    private void OnValueChanged()
+    {
+        StateHasChanged();
+    }
+
     private void ApplyPreset(string expression)
     {
         var parts = expression.Split(' ');
@@ -134,6 +139,7 @@
             DayOfWeek = parts[4];
             Year = parts[5];
             ManualInput = "";
+            StateHasChanged();
         }
     }
 
@@ -155,6 +161,7 @@
         Year = "*";
         ManualInput = "";
         CopySuccess = false;
+        StateHasChanged();
     }
 
     private async Task CopyToClipboard()
@@ -163,8 +170,10 @@
         {
             await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", CurrentExpression);
             CopySuccess = true;
+            StateHasChanged();
             await Task.Delay(2000);
             CopySuccess = false;
+            StateHasChanged();
         }
         catch (Exception ex)
         {
